@@ -110,4 +110,26 @@ const getCurrentUser = async (req, res) => {
   return res.status(200).json(req.user);
 };
 
-module.exports = { registerUser, loginUser, getCurrentUser };
+// PATCH /api/auth/fcm-token
+// Called by the mobile app right after login (and whenever Firebase
+// issues a new token) so the backend knows where to send push
+// notifications for this patient. Protected route - req.user comes
+// from the JWT, so a patient can only ever update their own token.
+const updateFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken) {
+      return res.status(400).json({ message: "fcmToken is required" });
+    }
+
+    req.user.fcmToken = fcmToken;
+    await req.user.save();
+
+    return res.status(200).json({ message: "FCM token updated" });
+  } catch (err) {
+    console.error("Update FCM token error:", err.message);
+    return res.status(500).json({ message: "Server error while updating FCM token" });
+  }
+};
+
+module.exports = { registerUser, loginUser, getCurrentUser, updateFcmToken };
