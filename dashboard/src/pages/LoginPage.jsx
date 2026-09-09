@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/client.js";
 import { useAuth } from "../api/AuthContext.jsx";
 
 const LoginPage = () => {
-  const [mode, setMode] = useState("login"); // "login" | "register"
-  const [form, setForm] = useState({ name: "", phone: "", password: "" });
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({ name: "", phone: "", password: "", role: "caregiver" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -24,7 +24,7 @@ const LoginPage = () => {
       const body =
         mode === "login"
           ? { phone: form.phone, password: form.password }
-          : { name: form.name, phone: form.phone, password: form.password, role: "caregiver" };
+          : { name: form.name, phone: form.phone, password: form.password, role: form.role };
 
       const res = await api.post(endpoint, body);
       login(res.data);
@@ -43,6 +43,34 @@ const LoginPage = () => {
         <p className="text-sm text-[#8a8478] mb-8">Caregiver dashboard</p>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-[#e8e4dc] p-6 flex flex-col gap-4">
+          {mode === "register" && (
+            <div>
+              <label className="text-sm text-[#4a453d] mb-1 block">I am a...</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 text-sm text-[#4a453d]">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="caregiver"
+                    checked={form.role === "caregiver"}
+                    onChange={handleChange}
+                  />
+                  Caregiver
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-[#4a453d]">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="patient"
+                    checked={form.role === "patient"}
+                    onChange={handleChange}
+                  />
+                  Patient
+                </label>
+              </div>
+            </div>
+          )}
+
           {mode === "register" && (
             <div>
               <label className="text-sm text-[#4a453d] mb-1 block">Name</label>
