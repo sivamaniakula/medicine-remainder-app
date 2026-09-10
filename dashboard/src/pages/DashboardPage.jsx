@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Users, BellRing, Smartphone, ArrowRight } from "lucide-react";
 import api from "../api/client.js";
+import StatCard from "../components/StatCard.jsx";
+
+const CHANNEL_LABEL = { app: "App (push)", whatsapp: "WhatsApp", voice: "Voice call" };
+
+const initials = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "?";
 
 const DashboardPage = () => {
   const [patients, setPatients] = useState([]);
+  const [alertCount, setAlertCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [phoneInput, setPhoneInput] = useState("");
   const [linkError, setLinkError] = useState("");
@@ -23,8 +36,18 @@ const DashboardPage = () => {
     }
   };
 
+  const fetchAlertCount = async () => {
+    try {
+      const res = await api.get("/alerts?resolved=false");
+      setAlertCount(res.data.length);
+    } catch (err) {
+      console.error("Failed to load alerts", err);
+    }
+  };
+
   useEffect(() => {
     fetchPatients();
+    fetchAlertCount();
   }, []);
 
   const handleLink = async (e) => {
@@ -62,16 +85,34 @@ const DashboardPage = () => {
     }
   };
 
+  const remoteChannelCount = patients.filter((p) => p.preferredChannel !== "app").length;
+
   return (
     <div>
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="font-display text-2xl text-[#292521]">Your patients</h1>
-          <p className="text-sm text-[#8a8478] mt-1">Manage medications and track adherence for each patient.</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="font-display text-2xl text-[#292521]">Your patients</h1>
+        <p className="text-sm text-[#8a8478] mt-1">Manage medications and track adherence for each patient.</p>
       </div>
 
-      <form onSubmit={handleLink} className="bg-white border border-[#e8e4dc] rounded-2xl p-5 mb-8 flex items-end gap-3">
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <StatCard label="Patients linked" value={patients.length} icon={Users} tone="accent" />
+        <StatCard
+          label="Unresolved alerts"
+          value={alertCount ?? "–"}
+          sublabel={alertCount ? "Needs a look" : "All clear"}
+          icon={BellRing}
+          tone={alertCount ? "red" : "neutral"}
+        />
+        <StatCard
+          label="On WhatsApp / voice"
+          value={remoteChannelCount}
+          sublabel="of your linked patients"
+          icon={Smartphone}
+          tone="amber"
+        />
+      </div>
+
+      <form onSubmit={handleLink} className="bg-white border border-[#e8e4dc] rounded-2xl p-5 mb-8 flex items-end gap-3 shadow-card">
         <div className="flex-1">
           <label className="text-sm text-[#4a453d] mb-1 block">Link a patient by phone number</label>
           <input
@@ -104,11 +145,20 @@ const DashboardPage = () => {
           {patients.map((patient) => (
             <div
               key={patient._id}
-              className="bg-white border border-[#e8e4dc] rounded-2xl p-5 hover:border-accent-400 transition-colors"
+              className="group bg-white border border-[#e8e4dc] rounded-2xl p-5 hover:border-accent-400 hover:shadow-card transition-all"
             >
-              <Link to={`/patients/${patient._id}`} className="block mb-3">
-                <p className="font-medium text-[#292521]">{patient.name}</p>
-                <p className="text-sm text-[#8a8478] mt-0.5">{patient.phone}</p>
+              <Link to={`/patients/${patient._id}`} className="flex items-center gap-3 mb-4">
+                <div className="w-11 h-11 rounded-full bg-accent-50 text-accent-600 font-display text-base flex items-center justify-center shrink-0">
+                  {initials(patient.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[#292521] truncate">{patient.name}</p>
+                  <p className="text-sm text-[#8a8478] mt-0.5">{patient.phone}</p>
+                </div>
+                <ArrowRight
+                  size={16}
+                  className="text-[#c9c3b6] group-hover:text-accent-500 group-hover:translate-x-0.5 transition-all shrink-0"
+                />
               </Link>
 
               {/* Channel + language pickers - these call the new
@@ -129,12 +179,13 @@ const DashboardPage = () => {
                   value={patient.preferredChannel}
                   disabled={savingPatientId === patient._id}
                   onChange={(e) => handleSettingChange(patient._id, "preferredChannel", e.target.value)}
-                  className="text-xs rounded-full bg-[#f2efe8] text-[#8a8478] px-2 py-1 border-none focus:ring-1 focus:ring-accent-400 capitalize"
+                  className="text-xs rounded-full bg-[#f2efe8] text-[#8a8478] px-2 py-1 border-none focus:ring-1 focus:ring-accent-400"
                 >
-                  <option value="app">App (push)</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="voice">Voice call</option>
-                  <option value="sms">SMS</option>
+                  {Object.entries(CHANNEL_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -146,4 +197,3 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
-
