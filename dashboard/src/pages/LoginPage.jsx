@@ -6,7 +6,7 @@ import { useAuth } from "../api/AuthContext.jsx";
 
 const LoginPage = () => {
   const [mode, setMode] = useState("login"); // "login" | "register"
-  const [form, setForm] = useState({ name: "", phone: "", password: "" });
+  const [form, setForm] = useState({ name: "", phone: "", password: "", role: "caregiver" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -25,7 +25,7 @@ const LoginPage = () => {
       const body =
         mode === "login"
           ? { phone: form.phone, password: form.password }
-          : { name: form.name, phone: form.phone, password: form.password, role: "caregiver" };
+          : { name: form.name, phone: form.phone, password: form.password, role: form.role };
 
       const res = await api.post(endpoint, body);
       login(res.data);
@@ -80,10 +80,40 @@ const LoginPage = () => {
             {mode === "login" ? "Welcome back" : "Create your account"}
           </p>
           <p className="hidden lg:block text-sm text-[#8a8478] mb-8">
-            {mode === "login" ? "Log in to manage your patients." : "Set up your caregiver account."}
+            {mode === "login" ? "Log in to your account." : "Set up your account."}
           </p>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-[#e8e4dc] p-6 flex flex-col gap-4 shadow-card">
+            {mode === "register" && (
+              <div>
+                <label className="text-sm text-[#4a453d] mb-1 block">I am a</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "caregiver", label: "Caregiver" },
+                    { value: "patient", label: "Patient" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, role: option.value })}
+                      className={`rounded-lg border text-sm py-2 transition-colors ${
+                        form.role === option.value
+                          ? "border-accent-500 bg-accent-50 text-accent-600 font-medium"
+                          : "border-[#e0dcd2] text-[#4a453d] hover:border-accent-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#8a8478] mt-1">
+                  {form.role === "caregiver"
+                    ? "You'll manage medications and reminders for linked patients."
+                    : "You'll receive dose reminders. A caregiver can link to this account by your phone number."}
+                </p>
+              </div>
+            )}
+
             {mode === "register" && (
               <div>
                 <label className="text-sm text-[#4a453d] mb-1 block">Name</label>
@@ -135,7 +165,7 @@ const LoginPage = () => {
           </form>
 
           <p className="text-sm text-[#8a8478] mt-4 text-center">
-            {mode === "login" ? "New caregiver?" : "Already have an account?"}{" "}
+            {mode === "login" ? "New here?" : "Already have an account?"}{" "}
             <button
               onClick={() => {
                 setMode(mode === "login" ? "register" : "login");
